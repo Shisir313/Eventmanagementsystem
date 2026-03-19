@@ -1,174 +1,147 @@
 package application;
 
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
+import javafx.collections.*;
+import javafx.geometry.*;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.stage.Stage;
+import model.*;
 import service.ApprovalService;
-import service.AuthenticationService;
+import service.EventService;
+import service.RegistrationService;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-
-/**
- * Admin UI for approving/rejecting registrations.
- */
 public class AdminUI {
-    private static AuthenticationService authService = new AuthenticationService();
-    private static ApprovalService approvalService = new ApprovalService();
 
-    public static class PendingRegistration {
-        private int registrationId;
-        private int studentId;
-        private int eventId;
-        private String registrationDate;
+    public static void show(User user) {
+        Admin admin = (Admin) user;
 
-        public PendingRegistration(int registrationId, int studentId, int eventId, String registrationDate) {
-            this.registrationId = registrationId;
-            this.studentId = studentId;
-            this.eventId = eventId;
-            this.registrationDate = registrationDate;
-        }
+        Stage stage = new Stage();
+        stage.setTitle("Admin Portal — " + admin.getName());
 
-        public int getRegistrationId() { return registrationId; }
-        public int getStudentId() { return studentId; }
-        public int getEventId() { return eventId; }
-        public String getRegistrationDate() { return registrationDate; }
+        ApprovalService     approvalSvc = new ApprovalService();
+        RegistrationService regSvc      = new RegistrationService();
+        EventService        eventSvc    = new EventService();
+
+        VBox approvalsPanel = buildApprovalsPanel(admin, approvalSvc, regSvc);
+        VBox eventsPanel    = buildAllEventsPanel(eventSvc);
+        eventsPanel.setVisible(false);
+        eventsPanel.setManaged(false);
+
+        StackPane content = new StackPane(approvalsPanel, eventsPanel);
+        content.setStyle("-fx-background-color: #F5F6FA; -fx-padding: 24px;");
+        HBox.setHgrow(content, Priority.ALWAYS);
+
+        // ── Sidebar ────────────────────────────────────────────
+        VBox sidebar = new VBox(0);
+        sidebar.setStyle("-fx-background-color: #1A237E; -fx-pref-width: 220px;");
+
+        VBox header = new VBox(4);
+        header.setStyle("-fx-background-color: #12175E; -fx-padding: 24px 16px;");
+        header.setAlignment(Pos.CENTER);
+        Label nameL = new Label(admin.getName());
+        nameL.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
+        Label roleL = new Label("Admin");
+        roleL.setStyle("-fx-text-fill: #9FA8DA; -fx-font-size: 12px;");
+        header.getChildren().addAll(nameL, roleL);
+
+        Button btnApprovals = StudentUI.navBtn("📋  Registrations", "navApprovals");
+        Button btnAllEvents = StudentUI.navBtn("📅  All Events",    "navAllEvents");
+        Region spacer       = new Region();
+        VBox.setVgrow(spacer, Priority.ALWAYS);
+        Button btnLogout    = StudentUI.navBtn("🚪  Logout",        "navLogout");
+
+        sidebar.getChildren().addAll(header, btnApprovals, btnAllEvents, spacer, btnLogout);
+
+        btnApprovals.setOnAction(e -> { StudentUI.show(approvalsPanel); StudentUI.hide(eventsPanel); });
+        btnAllEvents.setOnAction(e -> { StudentUI.show(eventsPanel);    StudentUI.hide(approvalsPanel); });
+        btnLogout.setOnAction(e    -> { admin.logout(); stage.close(); });
+
+        HBox root = new HBox(sidebar, content);
+        Scene scene = new Scene(root, 1100, 650);
+        stage.setScene(scene);
+        stage.setMinWidth(950);
+        stage.show();
     }
 
-    public static void show() {
-        Stage stage = new Stage();
-        stage.setTitle("Admin Portal");
+    private static VBox buildApprovalsPanel(Admin admin,
+                                             ApprovalService approvalSvc,
+                                             RegistrationService regSvc) {
+        VBox panel = new VBox(14);
 
-        Label idLabel = new Label("Admin ID:");
-        TextField idField = new TextField();
-        Button loginBtn = new Button("Login");
+        Label heading = new Label("Pending Registrations");
+        heading.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1A237E;");
+        Label sub = new Label("Approve or reject student event registrations.");
+        sub.setStyle("-fx-text-fill: #757575;");
 
-        HBox loginBox = new HBox(10, idLabel, idField, loginBtn);
-        loginBox.setAlignment(Pos.CENTER_LEFT);
+        TableView<Registration> table = new TableView<>();
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        VBox.setVgrow(table, Priority.ALWAYS);
+        StudentUI.styleTable(table);
 
-        TableView<PendingRegistration> table = new TableView<>();
-        TableColumn<PendingRegistration, Integer> regCol = new TableColumn<>("Registration ID");
-        regCol.setCellValueFactory(new PropertyValueFactory<>("registrationId"));
-        TableColumn<PendingRegistration, Integer> studentCol = new TableColumn<>("Student ID");
-        studentCol.setCellValueFactory(new PropertyValueFactory<>("studentId"));
-        TableColumn<PendingRegistration, Integer> eventCol = new TableColumn<>("Event ID");
-        eventCol.setCellValueFactory(new PropertyValueFactory<>("eventId"));
-        TableColumn<PendingRegistration, String> dateCol = new TableColumn<>("Registration Date");
-        dateCol.setCellValueFactory(new PropertyValueFactory<>("registrationDate"));
+        StudentUI.addCol(table, "Reg ID",     "registrationId");
+        StudentUI.addCol(table, "Student ID", "studentId");
+        StudentUI.addCol(table, "Event ID",   "eventId");
+        StudentUI.addCol(table, "Date",       "registrationDate");
+        StudentUI.addCol(table, "Status",     "status");
 
-        table.getColumns().addAll(regCol, studentCol, eventCol, dateCol);
+        ObservableList<Registration> data = FXCollections.observableArrayList(
+            regSvc.getAllPendingRegistrations()
+        );
+        table.setItems(data);
 
-        Button refreshBtn = new Button("Refresh Pending");
-        Button approveBtn = new Button("Approve");
-        Button rejectBtn = new Button("Reject");
+        Label feedback = new Label();
+        feedback.setWrapText(true);
 
-        HBox actions = new HBox(10, approveBtn, rejectBtn);
-        actions.setAlignment(Pos.CENTER);
+        Button approveBtn = new Button("✅  Approve");
+        StudentUI.stylePrimaryBtn(approveBtn);
 
-        VBox root = new VBox(10, loginBox, refreshBtn, table, actions);
-        root.setPadding(new Insets(10));
-
-        refreshBtn.setOnAction(e -> {
-            try {
-                ResultSet rs = approvalService.getPendingRegistrations();
-                List<PendingRegistration> list = new ArrayList<>();
-                while (rs.next()) {
-                    int rid = rs.getInt("RegistrationID");
-                    int sid = rs.getInt("StudentID");
-                    int eid = rs.getInt("EventID");
-                    String rdate = rs.getDate("RegistrationDate").toString();
-                    list.add(new PendingRegistration(rid, sid, eid, rdate));
-                }
-                ObservableList<PendingRegistration> obs = FXCollections.observableArrayList(list);
-                table.setItems(obs);
-                rs.getStatement().getConnection().close(); // close connection after read
-            } catch (SQLException ex) {
-                ex.printStackTrace();
-                Alert a = new Alert(Alert.AlertType.ERROR, "Failed to fetch pending registrations", ButtonType.OK);
-                a.showAndWait();
-            }
-        });
-
-        loginBtn.setOnAction(e -> {
-            try {
-                int adminId = Integer.parseInt(idField.getText().trim());
-                boolean ok = authService.loginAdmin(adminId);
-                if (ok) {
-                    Alert a = new Alert(Alert.AlertType.INFORMATION, "Login successful", ButtonType.OK);
-                    a.showAndWait();
-                } else {
-                    Alert a = new Alert(Alert.AlertType.ERROR, "Login failed", ButtonType.OK);
-                    a.showAndWait();
-                }
-            } catch (NumberFormatException ex) {
-                Alert a = new Alert(Alert.AlertType.ERROR, "Enter a valid numeric admin ID", ButtonType.OK);
-                a.showAndWait();
-            }
-        });
+        Button rejectBtn = new Button("❌  Reject");
+        StudentUI.styleDangerBtn(rejectBtn);
 
         approveBtn.setOnAction(e -> {
-            PendingRegistration pr = table.getSelectionModel().getSelectedItem();
-            if (pr == null) {
-                Alert a = new Alert(Alert.AlertType.WARNING, "Select a registration to approve", ButtonType.OK);
-                a.showAndWait();
-                return;
-            }
-            try {
-                int adminId = Integer.parseInt(idField.getText().trim());
-                boolean ok = approvalService.approveRegistration(pr.getRegistrationId(), adminId);
-                if (ok) {
-                    Alert a = new Alert(Alert.AlertType.INFORMATION, "Approved", ButtonType.OK);
-                    a.showAndWait();
-                    refreshBtn.fire();
-                } else {
-                    Alert a = new Alert(Alert.AlertType.ERROR, "Failed to approve", ButtonType.OK);
-                    a.showAndWait();
-                }
-            } catch (NumberFormatException ex) {
-                Alert a = new Alert(Alert.AlertType.ERROR, "Enter a valid numeric admin ID", ButtonType.OK);
-                a.showAndWait();
-            }
+            Registration sel = table.getSelectionModel().getSelectedItem();
+            if (sel == null) { StudentUI.setError(feedback, "Please select a registration."); return; }
+            approvalSvc.approve(sel.getRegistrationId(), admin.getAdminId());
+            sel.setStatus("Approved");
+            table.refresh();
+            StudentUI.setSuccess(feedback, "Registration #" + sel.getRegistrationId() + " approved.");
         });
 
         rejectBtn.setOnAction(e -> {
-            PendingRegistration pr = table.getSelectionModel().getSelectedItem();
-            if (pr == null) {
-                Alert a = new Alert(Alert.AlertType.WARNING, "Select a registration to reject", ButtonType.OK);
-                a.showAndWait();
-                return;
-            }
-            try {
-                int adminId = Integer.parseInt(idField.getText().trim());
-                boolean ok = approvalService.rejectRegistration(pr.getRegistrationId(), adminId);
-                if (ok) {
-                    Alert a = new Alert(Alert.AlertType.INFORMATION, "Rejected", ButtonType.OK);
-                    a.showAndWait();
-                    refreshBtn.fire();
-                } else {
-                    Alert a = new Alert(Alert.AlertType.ERROR, "Failed to reject", ButtonType.OK);
-                    a.showAndWait();
-                }
-            } catch (NumberFormatException ex) {
-                Alert a = new Alert(Alert.AlertType.ERROR, "Enter a valid numeric admin ID", ButtonType.OK);
-                a.showAndWait();
-            }
+            Registration sel = table.getSelectionModel().getSelectedItem();
+            if (sel == null) { StudentUI.setError(feedback, "Please select a registration."); return; }
+            approvalSvc.reject(sel.getRegistrationId(), admin.getAdminId(), "Rejected by admin");
+            sel.setStatus("Rejected");
+            table.refresh();
+            StudentUI.setError(feedback, "Registration #" + sel.getRegistrationId() + " rejected.");
         });
 
-        // initial load
-        refreshBtn.fire();
+        HBox btnRow = new HBox(12, approveBtn, rejectBtn);
+        panel.getChildren().addAll(heading, sub, table, btnRow, feedback);
+        return panel;
+    }
 
-        Scene scene = new Scene(root, 700, 500);
-        stage.setScene(scene);
-        stage.show();
+    private static VBox buildAllEventsPanel(EventService eventSvc) {
+        VBox panel = new VBox(14);
+
+        Label heading = new Label("All Events");
+        heading.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1A237E;");
+
+        TableView<Event> table = new TableView<>();
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        VBox.setVgrow(table, Priority.ALWAYS);
+        StudentUI.styleTable(table);
+
+        StudentUI.addCol(table, "ID",           "eventId");
+        StudentUI.addCol(table, "Event Name",   "eventName");
+        StudentUI.addCol(table, "Date",         "eventDate");
+        StudentUI.addCol(table, "Location",     "location");
+        StudentUI.addCol(table, "Organizer ID", "organizerId");
+        StudentUI.addCol(table, "Status",       "status");
+
+        table.setItems(FXCollections.observableArrayList(eventSvc.getAllEvents()));
+        panel.getChildren().addAll(heading, table);
+        return panel;
     }
 }

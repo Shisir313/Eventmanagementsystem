@@ -1,49 +1,29 @@
 package model;
 
-import java.io.Serializable;
+public class Student extends User {
 
-/**
- * Model class representing a student.
- */
-public class Student implements Serializable {
-    private int studentId;
-    private String studentName;
-    private String email;
+    private int    studentId;
+    private String department;
 
-    public Student() {}
-
-    public Student(int studentId, String studentName, String email) {
-        this.studentId = studentId;
-        this.studentName = studentName;
-        this.email = email;
-    }
-
-    public int getStudentId() {
-        return studentId;
-    }
-
-    public void setStudentId(int studentId) {
-        this.studentId = studentId;
-    }
-
-    public String getStudentName() {
-        return studentName;
-    }
-
-    public void setStudentName(String studentName) {
-        this.studentName = studentName;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
+    public Student(int userId, String name, String email, String password,
+                   int studentId, String department) {
+        super(userId, name, email, password, "Student");
+        this.studentId  = studentId;
+        this.department = department;
     }
 
     @Override
+    public void showDashboard() {
+        System.out.println("Opening Student Dashboard for: " + getName());
+    }
+
+    public int    getStudentId()             { return studentId; }
+    public String getDepartment()            { return department; }
+    public void   setStudentId(int id)       { this.studentId = id; }
+    public void   setDepartment(String dept) { this.department = dept; }
+
+    @Override
     public String toString() {
-        return "Student{" + "studentId=" + studentId + ", studentName='" + studentName + '\'' + ", email='" + email + '\'' + '}';
+        return "Student{id=" + studentId + ", name='" + getName() + "'}";
     }
 }

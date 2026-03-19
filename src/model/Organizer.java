@@ -1,49 +1,29 @@
 package model;
 
-import java.io.Serializable;
+public class Organizer extends User {
 
-/**
- * Model class representing an organizer.
- */
-public class Organizer implements Serializable {
-    private int organizerId;
-    private String organizerName;
+    private int    organizerId;
     private String contact;
 
-    public Organizer() {}
-
-    public Organizer(int organizerId, String organizerName, String contact) {
+    public Organizer(int userId, String name, String email, String password,
+                     int organizerId, String contact) {
+        super(userId, name, email, password, "Organizer");
         this.organizerId = organizerId;
-        this.organizerName = organizerName;
-        this.contact = contact;
-    }
-
-    public int getOrganizerId() {
-        return organizerId;
-    }
-
-    public void setOrganizerId(int organizerId) {
-        this.organizerId = organizerId;
-    }
-
-    public String getOrganizerName() {
-        return organizerName;
-    }
-
-    public void setOrganizerName(String organizerName) {
-        this.organizerName = organizerName;
-    }
-
-    public String getContact() {
-        return contact;
-    }
-
-    public void setContact(String contact) {
-        this.contact = contact;
+        this.contact     = contact;
     }
 
     @Override
+    public void showDashboard() {
+        System.out.println("Opening Organizer Dashboard for: " + getName());
+    }
+
+    public int    getOrganizerId()              { return organizerId; }
+    public String getContact()                  { return contact; }
+    public void   setOrganizerId(int id)        { this.organizerId = id; }
+    public void   setContact(String contact)    { this.contact = contact; }
+
+    @Override
     public String toString() {
-        return "Organizer{" + "organizerId=" + organizerId + ", organizerName='" + organizerName + '\'' + ", contact='" + contact + '\'' + '}';
+        return "Organizer{id=" + organizerId + ", name='" + getName() + "'}";
     }
 }

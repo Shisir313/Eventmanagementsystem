@@ -11,6 +11,7 @@ public class Registration implements Serializable {
     private int studentId;
     private int eventId;
     private LocalDate registrationDate;
+    private String status;
 
     public Registration() {}
 
@@ -19,6 +20,16 @@ public class Registration implements Serializable {
         this.studentId = studentId;
         this.eventId = eventId;
         this.registrationDate = registrationDate;
+        this.status = "Pending";
+    }
+
+    // Optional constructor that accepts status
+    public Registration(int registrationId, int studentId, int eventId, LocalDate registrationDate, String status) {
+        this.registrationId = registrationId;
+        this.studentId = studentId;
+        this.eventId = eventId;
+        this.registrationDate = registrationDate;
+        this.status = status != null ? status : "Pending";
     }
 
     public int getRegistrationId() {
@@ -53,8 +64,16 @@ public class Registration implements Serializable {
         this.registrationDate = registrationDate;
     }
 
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
     @Override
     public String toString() {
-        return "Registration{" + "registrationId=" + registrationId + ", studentId=" + studentId + ", eventId=" + eventId + ", registrationDate=" + registrationDate + '}';
+        return "Registration{" + "registrationId=" + registrationId + ", studentId=" + studentId + ", eventId=" + eventId + ", registrationDate=" + registrationDate + ", status=" + status + '}';
     }
 }

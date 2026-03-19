@@ -2,79 +2,84 @@ package service;
 
 import database.DBConnection;
 import model.Event;
-
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.time.LocalDate;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Service responsible for event-related operations.
- */
 public class EventService {
 
-    /**
-     * Create a new event. Returns generated event id or -1 on failure.
-     */
-    public int createEvent(Event event) {
-        String sql = "INSERT INTO Event (EventName, EventDate, OrganizerID) VALUES (?, ?, ?)";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
+    private final Connection conn;
+
+    public EventService() {
+        this.conn = DBConnection.getInstance().getConnection();
+    }
+
+    public boolean createEvent(Event event) {
+        String sql = "INSERT INTO event (event_name, event_date, location, description, organizer_id, status) " +
+                     "VALUES (?, ?, ?, ?, ?, 'Pending')";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, event.getEventName());
             ps.setDate(2, java.sql.Date.valueOf(event.getEventDate()));
-            ps.setInt(3, event.getOrganizerId());
-            int affected = ps.executeUpdate();
-            if (affected == 0) return -1;
-            try (ResultSet keys = ps.getGeneratedKeys()) {
-                if (keys.next()) return keys.getInt(1);
-            }
-            return -1;
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            return -1;
+            ps.setString(3, event.getLocation());
+            ps.setString(4, event.getDescription());
+            ps.setInt(5, event.getOrganizerId());
+            ps.executeUpdate(); return true;
+        } catch (SQLException e) {
+            System.err.println("Create event error: " + e.getMessage()); return false;
         }
     }
 
-    /**
-     * Update an existing event. Returns true on success.
-     */
-    public boolean updateEvent(Event event) {
-        String sql = "UPDATE Event SET EventName = ?, EventDate = ? WHERE EventID = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, event.getEventName());
-            ps.setDate(2, java.sql.Date.valueOf(event.getEventDate()));
-            ps.setInt(3, event.getEventId());
-            return ps.executeUpdate() > 0;
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            return false;
-        }
-    }
-
-    /**
-     * Retrieve all events from database.
-     */
     public List<Event> getAllEvents() {
-        List<Event> events = new ArrayList<>();
-        String sql = "SELECT EventID, EventName, EventDate, OrganizerID FROM Event";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                Event e = new Event();
-                e.setEventId(rs.getInt("EventID"));
-                e.setEventName(rs.getString("EventName"));
-                e.setEventDate(rs.getDate("EventDate").toLocalDate());
-                e.setOrganizerId(rs.getInt("OrganizerID"));
-                events.add(e);
-            }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
+        List<Event> list = new ArrayList<>();
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("SELECT * FROM event ORDER BY event_date ASC")) {
+            while (rs.next()) list.add(mapRow(rs));
+        } catch (SQLException e) { System.err.println("Get events error: " + e.getMessage()); }
+        return list;
+    }
+
+    public List<Event> getEventsByOrganizer(int organizerId) {
+        List<Event> list = new ArrayList<>();
+        String sql = "SELECT * FROM event WHERE organizer_id = ? ORDER BY event_date ASC";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, organizerId);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) list.add(mapRow(rs));
+        } catch (SQLException e) { System.err.println("Get organizer events error: " + e.getMessage()); }
+        return list;
+    }
+
+    public boolean updateEvent(Event event) {
+        String sql = "UPDATE event SET event_name=?, event_date=?, location=?, description=? WHERE event_id=?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, event.getEventName());
+            ps.setDate(2, java.sql.Date.valueOf(event.getEventDate()));
+            ps.setString(3, event.getLocation());
+            ps.setString(4, event.getDescription());
+            ps.setInt(5, event.getEventId());
+            ps.executeUpdate(); return true;
+        } catch (SQLException e) {
+            System.err.println("Update event error: " + e.getMessage()); return false;
         }
-        return events;
+    }
+
+    public boolean deleteEvent(int eventId) {
+        String sql = "DELETE FROM event WHERE event_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, eventId); ps.executeUpdate(); return true;
+        } catch (SQLException e) {
+            System.err.println("Delete event error: " + e.getMessage()); return false;
+        }
+    }
+
+    private Event mapRow(ResultSet rs) throws SQLException {
+        Event e = new Event(
+            rs.getInt("event_id"), rs.getString("event_name"),
+            rs.getDate("event_date").toLocalDate(),
+            rs.getString("location"), rs.getString("description"),
+            rs.getInt("organizer_id")
+        );
+        e.setStatus(rs.getString("status"));
+        return e;
     }
 }

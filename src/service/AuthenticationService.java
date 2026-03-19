@@ -1,149 +1,135 @@
 package service;
 
 import database.DBConnection;
-
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import model.*;
+import java.sql.*;
 
 /**
- * Service responsible for authentication logic.
- * For simplicity, this example checks existence of ID in respective tables and
- * provides simple registration methods that insert into the DB and return the new ID.
+ * Singleton + Factory Pattern.
+ * Queries the correct table based on role selected at login.
  */
 public class AuthenticationService {
 
-    // store the last error message (if any) so UI can retrieve it for feedback
-    private static String lastError = null;
+    private final Connection conn;
 
-    public static String getLastError() {
-        return lastError;
+    public AuthenticationService() {
+        this.conn = DBConnection.getInstance().getConnection();
     }
 
-    /**
-     * Register a new student. Returns generated student ID or -1 on failure.
-     */
-    public int registerStudent(String name, String email) {
-        lastError = null;
-        String sql = "INSERT INTO Student (StudentName, Email) VALUES (?, ?)";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
-            ps.setString(1, name);
-            ps.setString(2, email);
-            int affected = ps.executeUpdate();
-            if (affected == 0) return -1;
-            try (ResultSet keys = ps.getGeneratedKeys()) {
-                if (keys.next()) return keys.getInt(1);
+    public User authenticate(String email, String password, String role) {
+        try {
+            switch (role) {
+                case "Student":   return authenticateStudent(email, password);
+                case "Organizer": return authenticateOrganizer(email, password);
+                case "Admin":     return authenticateAdmin(email, password);
+                default:          return null;
             }
-            return -1;
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            lastError = ex.getMessage();
-            return -1;
+        } catch (SQLException e) {
+            System.err.println("Authentication error: " + e.getMessage());
+            return null;
         }
     }
 
-    /**
-     * Register a new organizer. Returns generated organizer ID or -1 on failure.
-     */
-    public int registerOrganizer(String name, String contact) {
-        lastError = null;
-        String sql = "INSERT INTO Organizer (OrganizerName, Contact) VALUES (?, ?)";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
-            ps.setString(1, name);
-            ps.setString(2, contact);
-            int affected = ps.executeUpdate();
-            if (affected == 0) return -1;
-            try (ResultSet keys = ps.getGeneratedKeys()) {
-                if (keys.next()) return keys.getInt(1);
+    public boolean register(String name, String email, String password, String role) {
+        if (emailExists(email, role)) return false;
+        try {
+            switch (role) {
+                case "Student":   return insertStudent(name, email, password);
+                case "Organizer": return insertOrganizer(name, email, password);
+                case "Admin":     return insertAdmin(name, email, password);
+                default:          return false;
             }
-            return -1;
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            lastError = ex.getMessage();
-            return -1;
-        }
-    }
-
-    /**
-     * Register a new admin. Returns generated admin ID or -1 on failure.
-     */
-    public int registerAdmin(String name, String email) {
-        lastError = null;
-        String sql = "INSERT INTO Admin (AdminName, Email) VALUES (?, ?)";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
-            ps.setString(1, name);
-            ps.setString(2, email);
-            int affected = ps.executeUpdate();
-            if (affected == 0) return -1;
-            try (ResultSet keys = ps.getGeneratedKeys()) {
-                if (keys.next()) return keys.getInt(1);
-            }
-            return -1;
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            lastError = ex.getMessage();
-            return -1;
-        }
-    }
-
-    /**
-     * Check student login by studentId (could be expanded to username/password)
-     */
-    public boolean loginStudent(int studentId) {
-        lastError = null;
-        String sql = "SELECT StudentID FROM Student WHERE StudentID = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, studentId);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            lastError = ex.getMessage();
+        } catch (SQLException e) {
+            System.err.println("Registration error: " + e.getMessage());
             return false;
         }
     }
 
-    /**
-     * Check organizer login by organizerId
-     */
-    public boolean loginOrganizer(int organizerId) {
-        lastError = null;
-        String sql = "SELECT OrganizerID FROM Organizer WHERE OrganizerID = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, organizerId);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
+    private Student authenticateStudent(String email, String password) throws SQLException {
+        String sql = "SELECT * FROM student WHERE email = ? AND password = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, email); ps.setString(2, password);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return new Student(
+                    rs.getInt("student_id"), rs.getString("name"),
+                    rs.getString("email"),   rs.getString("password"),
+                    rs.getInt("student_id"),
+                    rs.getString("department") != null ? rs.getString("department") : "General"
+                );
             }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            lastError = ex.getMessage();
-            return false;
+        }
+        return null;
+    }
+
+    private Organizer authenticateOrganizer(String email, String password) throws SQLException {
+        String sql = "SELECT * FROM organizer WHERE email = ? AND password = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, email); ps.setString(2, password);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return new Organizer(
+                    rs.getInt("organizer_id"), rs.getString("name"),
+                    rs.getString("email"),     rs.getString("password"),
+                    rs.getInt("organizer_id"),
+                    rs.getString("contact") != null ? rs.getString("contact") : ""
+                );
+            }
+        }
+        return null;
+    }
+
+    private Admin authenticateAdmin(String email, String password) throws SQLException {
+        String sql = "SELECT * FROM admin WHERE email = ? AND password = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, email); ps.setString(2, password);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return new Admin(
+                    rs.getInt("admin_id"), rs.getString("name"),
+                    rs.getString("email"), rs.getString("password"),
+                    rs.getInt("admin_id")
+                );
+            }
+        }
+        return null;
+    }
+
+    private boolean insertStudent(String name, String email, String password) throws SQLException {
+        String sql = "INSERT INTO student (name, email, password, department) VALUES (?, ?, ?, 'General')";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, name); ps.setString(2, email); ps.setString(3, password);
+            ps.executeUpdate(); return true;
         }
     }
 
-    /**
-     * Check admin login by adminId
-     */
-    public boolean loginAdmin(int adminId) {
-        lastError = null;
-        String sql = "SELECT AdminID FROM Admin WHERE AdminID = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, adminId);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            lastError = ex.getMessage();
-            return false;
+    private boolean insertOrganizer(String name, String email, String password) throws SQLException {
+        String sql = "INSERT INTO organizer (name, email, password, contact) VALUES (?, ?, ?, '')";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, name); ps.setString(2, email); ps.setString(3, password);
+            ps.executeUpdate(); return true;
         }
+    }
+
+    private boolean insertAdmin(String name, String email, String password) throws SQLException {
+        String sql = "INSERT INTO admin (name, email, password) VALUES (?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, name); ps.setString(2, email); ps.setString(3, password);
+            ps.executeUpdate(); return true;
+        }
+    }
+
+    private boolean emailExists(String email, String role) {
+        String table = role.equals("Student") ? "student"
+                     : role.equals("Organizer") ? "organizer" : "admin";
+        String sql = "SELECT COUNT(*) FROM " + table + " WHERE email = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, email);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getInt(1) > 0;
+        } catch (SQLException e) {
+            System.err.println("Email check error: " + e.getMessage());
+        }
+        return false;
     }
 }

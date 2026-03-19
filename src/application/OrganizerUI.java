@@ -1,144 +1,154 @@
 package application;
 
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
+import javafx.collections.*;
+import javafx.geometry.*;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.stage.Stage;
-import model.Event;
-import service.AuthenticationService;
+import model.*;
 import service.EventService;
-
 import java.time.LocalDate;
-import java.util.List;
 
-/**
- * Organizer UI: login, create and update events.
- */
 public class OrganizerUI {
-    private static AuthenticationService authService = new AuthenticationService();
-    private static EventService eventService = new EventService();
 
-    public static void show() {
+    public static void show(User user) {
+        Organizer organizer = (Organizer) user;
+
         Stage stage = new Stage();
-        stage.setTitle("Organizer Portal");
+        stage.setTitle("Organizer Portal — " + organizer.getName());
 
-        Label idLabel = new Label("Organizer ID:");
-        TextField idField = new TextField();
-        Button loginBtn = new Button("Login");
+        EventService eventSvc = new EventService();
 
-        HBox loginBox = new HBox(10, idLabel, idField, loginBtn);
-        loginBox.setAlignment(Pos.CENTER_LEFT);
+        VBox sidebar = StudentUI.buildSidebar(organizer.getName(), "Organizer");
 
-        GridPane form = new GridPane();
-        form.setHgap(10);
-        form.setVgap(10);
-        form.setPadding(new Insets(10));
+        VBox eventsPanel = buildEventsPanel(organizer, eventSvc);
+        VBox createPanel = buildCreatePanel(organizer, eventSvc);
+        createPanel.setVisible(false);
+        createPanel.setManaged(false);
 
-        Label nameLabel = new Label("Event Name:");
-        TextField nameField = new TextField();
-        Label dateLabel = new Label("Event Date:");
-        DatePicker datePicker = new DatePicker();
+        StackPane content = new StackPane(eventsPanel, createPanel);
+        content.setStyle("-fx-background-color: #F5F6FA; -fx-padding: 24px;");
+        HBox.setHgrow(content, Priority.ALWAYS);
 
-        Button createBtn = new Button("Create Event");
-        Button updateBtn = new Button("Update Event");
+        Button btnMyEvents = StudentUI.navBtn("📅  My Events",     "navMyEvents");
+        Button btnCreate   = StudentUI.navBtn("➕  Create Event",  "navCreate");
+        Region spacer      = new Region();
+        VBox.setVgrow(spacer, Priority.ALWAYS);
+        Button btnLogout   = StudentUI.navBtn("🚪  Logout",        "navLogout");
 
-        form.add(nameLabel, 0, 0);
-        form.add(nameField, 1, 0);
-        form.add(dateLabel, 0, 1);
-        form.add(datePicker, 1, 1);
-        form.add(new HBox(10, createBtn, updateBtn), 1, 2);
+        // Replace sidebar buttons
+        sidebar.getChildren().clear();
+        VBox header = new VBox(4);
+        header.setStyle("-fx-background-color: #12175E; -fx-padding: 24px 16px;");
+        header.setAlignment(Pos.CENTER);
+        Label nameL = new Label(organizer.getName());
+        nameL.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
+        Label roleL = new Label("Organizer");
+        roleL.setStyle("-fx-text-fill: #9FA8DA; -fx-font-size: 12px;");
+        header.getChildren().addAll(nameL, roleL);
+        sidebar.getChildren().addAll(header, btnMyEvents, btnCreate, spacer, btnLogout);
+
+        btnMyEvents.setOnAction(e -> { StudentUI.show(eventsPanel); StudentUI.hide(createPanel); });
+        btnCreate.setOnAction(e   -> { StudentUI.show(createPanel); StudentUI.hide(eventsPanel); });
+        btnLogout.setOnAction(e   -> { organizer.logout(); stage.close(); });
+
+        HBox root = new HBox(sidebar, content);
+        Scene scene = new Scene(root, 1000, 620);
+        stage.setScene(scene);
+        stage.setMinWidth(900);
+        stage.show();
+    }
+
+    private static VBox buildEventsPanel(Organizer organizer, EventService eventSvc) {
+        VBox panel = new VBox(14);
+
+        Label heading = new Label("My Events");
+        heading.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1A237E;");
 
         TableView<Event> table = new TableView<>();
-        TableColumn<Event, Integer> idCol = new TableColumn<>("Event ID");
-        idCol.setCellValueFactory(new PropertyValueFactory<>("eventId"));
-        TableColumn<Event, String> nameCol = new TableColumn<>("Event Name");
-        nameCol.setCellValueFactory(new PropertyValueFactory<>("eventName"));
-        TableColumn<Event, LocalDate> dateCol = new TableColumn<>("Event Date");
-        dateCol.setCellValueFactory(new PropertyValueFactory<>("eventDate"));
-        table.getColumns().addAll(idCol, nameCol, dateCol);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        VBox.setVgrow(table, Priority.ALWAYS);
+        StudentUI.styleTable(table);
 
-        Button refreshBtn = new Button("Refresh Events");
+        StudentUI.addCol(table, "ID",         "eventId");
+        StudentUI.addCol(table, "Event Name", "eventName");
+        StudentUI.addCol(table, "Date",       "eventDate");
+        StudentUI.addCol(table, "Location",   "location");
+        StudentUI.addCol(table, "Status",     "status");
 
-        VBox root = new VBox(10, loginBox, form, refreshBtn, table);
-        root.setPadding(new Insets(10));
+        table.setItems(FXCollections.observableArrayList(
+            eventSvc.getEventsByOrganizer(organizer.getOrganizerId())
+        ));
 
-        refreshBtn.setOnAction(e -> {
-            List<Event> events = eventService.getAllEvents();
-            ObservableList<Event> obs = FXCollections.observableArrayList(events);
-            table.setItems(obs);
+        Label feedback = new Label();
+        Button deleteBtn = new Button("🗑  Delete Selected Event");
+        StudentUI.styleDangerBtn(deleteBtn);
+        deleteBtn.setOnAction(e -> {
+            Event sel = table.getSelectionModel().getSelectedItem();
+            if (sel == null) { StudentUI.setError(feedback, "Please select an event."); return; }
+            eventSvc.deleteEvent(sel.getEventId());
+            table.getItems().remove(sel);
+            StudentUI.setSuccess(feedback, "Event deleted.");
         });
 
-        loginBtn.setOnAction(e -> {
-            try {
-                int organizerId = Integer.parseInt(idField.getText().trim());
-                boolean ok = authService.loginOrganizer(organizerId);
-                if (ok) {
-                    Alert a = new Alert(Alert.AlertType.INFORMATION, "Login successful", ButtonType.OK);
-                    a.showAndWait();
-                } else {
-                    Alert a = new Alert(Alert.AlertType.ERROR, "Login failed", ButtonType.OK);
-                    a.showAndWait();
-                }
-            } catch (NumberFormatException ex) {
-                Alert a = new Alert(Alert.AlertType.ERROR, "Enter a valid numeric organizer ID", ButtonType.OK);
-                a.showAndWait();
-            }
-        });
+        panel.getChildren().addAll(heading, table, deleteBtn, feedback);
+        return panel;
+    }
+
+    private static VBox buildCreatePanel(Organizer organizer, EventService eventSvc) {
+        VBox panel = new VBox(12);
+        panel.setMaxWidth(460);
+
+        Label heading = new Label("Create New Event");
+        heading.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1A237E;");
+
+        TextField nameField = new TextField();
+        nameField.setPromptText("Event name");
+
+        DatePicker datePicker = new DatePicker(LocalDate.now().plusDays(7));
+
+        TextField locationField = new TextField();
+        locationField.setPromptText("Location / venue");
+
+        TextArea descField = new TextArea();
+        descField.setPromptText("Event description");
+        descField.setPrefRowCount(3);
+
+        Label feedback = new Label();
+        feedback.setWrapText(true);
+
+        Button createBtn = new Button("Create Event");
+        StudentUI.stylePrimaryBtn(createBtn);
 
         createBtn.setOnAction(e -> {
-            try {
-                int organizerId = Integer.parseInt(idField.getText().trim());
-                Event ev = new Event();
-                ev.setEventName(nameField.getText().trim());
-                ev.setEventDate(datePicker.getValue());
-                ev.setOrganizerId(organizerId);
-                int id = eventService.createEvent(ev);
-                if (id > 0) {
-                    Alert a = new Alert(Alert.AlertType.INFORMATION, "Event created (ID: " + id + ")", ButtonType.OK);
-                    a.showAndWait();
-                    refreshBtn.fire();
-                } else {
-                    Alert a = new Alert(Alert.AlertType.ERROR, "Failed to create event", ButtonType.OK);
-                    a.showAndWait();
-                }
-            } catch (NumberFormatException ex) {
-                Alert a = new Alert(Alert.AlertType.ERROR, "Enter a valid numeric organizer ID", ButtonType.OK);
-                a.showAndWait();
-            }
-        });
+            String name     = nameField.getText().trim();
+            String location = locationField.getText().trim();
+            LocalDate date  = datePicker.getValue();
 
-        updateBtn.setOnAction(e -> {
-            Event selected = table.getSelectionModel().getSelectedItem();
-            if (selected == null) {
-                Alert a = new Alert(Alert.AlertType.WARNING, "Select an event to update", ButtonType.OK);
-                a.showAndWait();
-                return;
+            if (name.isEmpty() || location.isEmpty() || date == null) {
+                StudentUI.setError(feedback, "Please fill in all required fields."); return;
             }
-            selected.setEventName(nameField.getText().trim());
-            selected.setEventDate(datePicker.getValue());
-            boolean ok = eventService.updateEvent(selected);
-            if (ok) {
-                Alert a = new Alert(Alert.AlertType.INFORMATION, "Event updated", ButtonType.OK);
-                a.showAndWait();
-                refreshBtn.fire();
+
+            Event newEvent = new Event(0, name, date, location,
+                                       descField.getText().trim(),
+                                       organizer.getOrganizerId());
+            if (eventSvc.createEvent(newEvent)) {
+                StudentUI.setSuccess(feedback, "Event \"" + name + "\" created!");
+                nameField.clear(); locationField.clear(); descField.clear();
             } else {
-                Alert a = new Alert(Alert.AlertType.ERROR, "Failed to update event", ButtonType.OK);
-                a.showAndWait();
+                StudentUI.setError(feedback, "Failed to create event. Try again.");
             }
         });
 
-        // initial load
-        refreshBtn.fire();
-
-        Scene scene = new Scene(root, 700, 500);
-        stage.setScene(scene);
-        stage.show();
+        panel.getChildren().addAll(
+            heading, new Separator(),
+            new Label("Event Name"), nameField,
+            new Label("Event Date"), datePicker,
+            new Label("Location"),   locationField,
+            new Label("Description"), descField,
+            createBtn, feedback
+        );
+        return panel;
     }
 }

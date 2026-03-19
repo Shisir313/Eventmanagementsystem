@@ -1,49 +1,24 @@
 package model;
 
-import java.io.Serializable;
+public class Admin extends User {
 
-/**
- * Model class representing an admin.
- */
-public class Admin implements Serializable {
     private int adminId;
-    private String adminName;
-    private String email;
 
-    public Admin() {}
-
-    public Admin(int adminId, String adminName, String email) {
+    public Admin(int userId, String name, String email, String password, int adminId) {
+        super(userId, name, email, password, "Admin");
         this.adminId = adminId;
-        this.adminName = adminName;
-        this.email = email;
-    }
-
-    public int getAdminId() {
-        return adminId;
-    }
-
-    public void setAdminId(int adminId) {
-        this.adminId = adminId;
-    }
-
-    public String getAdminName() {
-        return adminName;
-    }
-
-    public void setAdminName(String adminName) {
-        this.adminName = adminName;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
     }
 
     @Override
+    public void showDashboard() {
+        System.out.println("Opening Admin Dashboard for: " + getName());
+    }
+
+    public int  getAdminId()        { return adminId; }
+    public void setAdminId(int id)  { this.adminId = id; }
+
+    @Override
     public String toString() {
-        return "Admin{" + "adminId=" + adminId + ", adminName='" + adminName + '\'' + ", email='" + email + '\'' + '}';
+        return "Admin{id=" + adminId + ", name='" + getName() + "'}";
     }
 }

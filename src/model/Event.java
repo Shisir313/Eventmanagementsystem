@@ -11,14 +11,31 @@ public class Event implements Serializable {
     private String eventName;
     private LocalDate eventDate;
     private int organizerId;
+    private String location;
+    private String description;
+    private String status;
 
     public Event() {}
 
-    public Event(int eventId, String eventName, LocalDate eventDate, int organizerId) {
+    public Event(int eventId, String eventName, LocalDate eventDate, String location, String description, int organizerId) {
         this.eventId = eventId;
         this.eventName = eventName;
         this.eventDate = eventDate;
+        this.location = location;
+        this.description = description;
         this.organizerId = organizerId;
+        this.status = "Pending";
+    }
+
+    // Optional constructor including status
+    public Event(int eventId, String eventName, LocalDate eventDate, String location, String description, int organizerId, String status) {
+        this.eventId = eventId;
+        this.eventName = eventName;
+        this.eventDate = eventDate;
+        this.location = location;
+        this.description = description;
+        this.organizerId = organizerId;
+        this.status = status != null ? status : "Pending";
     }
 
     public int getEventId() {
@@ -45,6 +62,30 @@ public class Event implements Serializable {
         this.eventDate = eventDate;
     }
 
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
     public int getOrganizerId() {
         return organizerId;
     }
@@ -55,6 +96,6 @@ public class Event implements Serializable {
 
     @Override
     public String toString() {
-        return "Event{" + "eventId=" + eventId + ", eventName='" + eventName + '\'' + ", eventDate=" + eventDate + ", organizerId=" + organizerId + '}';
+        return "Event{" + "eventId=" + eventId + ", eventName='" + eventName + '\'' + ", eventDate=" + eventDate + ", location='" + location + '\'' + ", description='" + description + '\'' + ", organizerId=" + organizerId + ", status=" + status + '}';
     }
 }

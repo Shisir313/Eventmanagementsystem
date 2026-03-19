@@ -2,58 +2,99 @@ package service;
 
 import database.DBConnection;
 import model.Registration;
-
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
-/**
- * Service to handle event registrations.
- */
 public class RegistrationService {
 
-    /**
-     * Register a student for an event. Returns registration ID or -1 on failure.
-     */
-    public int registerStudentForEvent(Registration reg) {
-        if (!validateRegistration(reg)) {
-            return -1;
-        }
-        String sql = "INSERT INTO Registration (StudentID, EventID, RegistrationDate) VALUES (?, ?, ?)";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
-            ps.setInt(1, reg.getStudentId());
-            ps.setInt(2, reg.getEventId());
-            ps.setDate(3, java.sql.Date.valueOf(reg.getRegistrationDate()));
-            int affected = ps.executeUpdate();
-            if (affected == 0) return -1;
-            try (ResultSet keys = ps.getGeneratedKeys()) {
-                if (keys.next()) return keys.getInt(1);
-            }
-            return -1;
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            return -1;
+    private final Connection conn;
+
+    public RegistrationService() {
+        this.conn = DBConnection.getInstance().getConnection();
+    }
+
+    public boolean registerStudent(int studentId, int eventId) {
+        if (isAlreadyRegistered(studentId, eventId)) return false;
+        String sql = "INSERT INTO registration (student_id, event_id, registration_date, status) " +
+                     "VALUES (?, ?, ?, 'Approved')"; // Auto-approve registrations
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, studentId); ps.setInt(2, eventId);
+            ps.setDate(3, java.sql.Date.valueOf(LocalDate.now()));
+            int rows = ps.executeUpdate();
+            System.out.println("registerStudent: executed insert, rowsAffected=" + rows);
+            return rows > 0;
+        } catch (SQLException e) {
+            System.err.println("Registration error: " + e.getMessage());
+            e.printStackTrace();
+            return false;
         }
     }
 
-    /**
-     * Basic validation: check if same student is already registered for same event.
-     */
-    public boolean validateRegistration(Registration reg) {
-        String sql = "SELECT RegistrationID FROM Registration WHERE StudentID = ? AND EventID = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, reg.getStudentId());
-            ps.setInt(2, reg.getEventId());
-            try (ResultSet rs = ps.executeQuery()) {
-                return !rs.next(); // valid if no existing registration
-            }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
+    public List<Registration> getRegistrationsByStudent(int studentId) {
+        List<Registration> list = new ArrayList<>();
+        String sql = "SELECT * FROM registration WHERE student_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, studentId);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) list.add(mapRow(rs));
+        } catch (SQLException e) { System.err.println("Get registrations error: " + e.getMessage()); e.printStackTrace(); }
+        return list;
+    }
+
+    public List<Registration> getAllPendingRegistrations() {
+        List<Registration> list = new ArrayList<>();
+        String sql = "SELECT * FROM registration WHERE status = 'Pending'";
+        try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
+            while (rs.next()) list.add(mapRow(rs));
+        } catch (SQLException e) { System.err.println("Get pending error: " + e.getMessage()); e.printStackTrace(); }
+        return list;
+    }
+
+    public boolean updateStatus(int registrationId, String status) {
+        String sql = "UPDATE registration SET status = ? WHERE registration_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, status); ps.setInt(2, registrationId);
+            int rows = ps.executeUpdate();
+            System.out.println("updateStatus: rowsAffected=" + rows);
+            return rows > 0;
+        } catch (SQLException e) {
+            System.err.println("Update status error: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
+    }
+
+    public boolean cancelRegistration(int registrationId) {
+        String sql = "DELETE FROM registration WHERE registration_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, registrationId); int rows = ps.executeUpdate();
+            System.out.println("cancelRegistration: rowsAffected=" + rows);
+            return rows > 0;
+        } catch (SQLException e) {
+            System.err.println("Cancel error: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean isAlreadyRegistered(int studentId, int eventId) {
+        String sql = "SELECT COUNT(*) FROM registration WHERE student_id = ? AND event_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, studentId); ps.setInt(2, eventId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getInt(1) > 0;
+        } catch (SQLException e) { System.err.println("Duplicate check error: " + e.getMessage()); e.printStackTrace(); }
+        return false;
+    }
+
+    private Registration mapRow(ResultSet rs) throws SQLException {
+        Registration r = new Registration(
+            rs.getInt("registration_id"), rs.getInt("student_id"),
+            rs.getInt("event_id"), rs.getDate("registration_date").toLocalDate()
+        );
+        r.setStatus(rs.getString("status"));
+        return r;
     }
 }

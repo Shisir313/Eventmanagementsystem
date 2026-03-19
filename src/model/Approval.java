@@ -8,15 +8,13 @@ import java.io.Serializable;
 public class Approval implements Serializable {
     private int approvalId;
     private int registrationId;
-    private int adminId;
     private String status; // e.g., PENDING, APPROVED, REJECTED
 
     public Approval() {}
 
-    public Approval(int approvalId, int registrationId, int adminId, String status) {
+    public Approval(int approvalId, int registrationId, String status) {
         this.approvalId = approvalId;
         this.registrationId = registrationId;
-        this.adminId = adminId;
         this.status = status;
     }
 
@@ -36,14 +34,6 @@ public class Approval implements Serializable {
         this.registrationId = registrationId;
     }
 
-    public int getAdminId() {
-        return adminId;
-    }
-
-    public void setAdminId(int adminId) {
-        this.adminId = adminId;
-    }
-
     public String getStatus() {
         return status;
     }
@@ -54,6 +44,6 @@ public class Approval implements Serializable {
 
     @Override
     public String toString() {
-        return "Approval{" + "approvalId=" + approvalId + ", registrationId=" + registrationId + ", adminId=" + adminId + ", status='" + status + '\'' + '}';
+        return "Approval{" + "approvalId=" + approvalId + ", registrationId=" + registrationId + ", status='" + status + '\'' + '}';
     }
 }

@@ -1,9 +1,11 @@
 package application;
 
+import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.*;
 import javafx.geometry.*;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import model.*;
@@ -54,7 +56,14 @@ public class AdminUI {
         sidebar.getChildren().addAll(header, btnApprovals, btnAllEvents, spacer, btnLogout);
 
         btnApprovals.setOnAction(e -> { StudentUI.show(approvalsPanel); StudentUI.hide(eventsPanel); });
-        btnAllEvents.setOnAction(e -> { StudentUI.show(eventsPanel);    StudentUI.hide(approvalsPanel); });
+        btnAllEvents.setOnAction(e -> {
+            // Refresh events table items so admin sees latest statuses
+            TableView<Event> tbl = (TableView<Event>) eventsPanel.lookup("#tblAllEvents");
+            if (tbl != null) {
+                tbl.setItems(FXCollections.observableArrayList(eventSvc.getAllEvents()));
+            }
+            StudentUI.show(eventsPanel);    StudentUI.hide(approvalsPanel);
+        });
         btnLogout.setOnAction(e    -> { admin.logout(); stage.close(); });
 
         HBox root = new HBox(sidebar, content);
@@ -75,12 +84,21 @@ public class AdminUI {
         sub.setStyle("-fx-text-fill: #757575;");
 
         TableView<Registration> table = new TableView<>();
+        table.setId("tblApprovals");
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         VBox.setVgrow(table, Priority.ALWAYS);
         StudentUI.styleTable(table);
 
         StudentUI.addCol(table, "Reg ID",     "registrationId");
-        StudentUI.addCol(table, "Student ID", "studentId");
+        // Replace Student ID with Student Name column using RegistrationService helper
+        TableColumn<Registration, String> studentNameCol = new TableColumn<>("Student Name");
+        studentNameCol.setCellValueFactory(cellData -> {
+            Registration reg = cellData.getValue();
+            String name = regSvc.getStudentName(reg.getStudentId());
+            return new ReadOnlyStringWrapper(name != null ? name : "(unknown)");
+        });
+        table.getColumns().add(studentNameCol);
+
         StudentUI.addCol(table, "Event ID",   "eventId");
         StudentUI.addCol(table, "Date",       "registrationDate");
         StudentUI.addCol(table, "Status",     "status");
@@ -102,19 +120,42 @@ public class AdminUI {
         approveBtn.setOnAction(e -> {
             Registration sel = table.getSelectionModel().getSelectedItem();
             if (sel == null) { StudentUI.setError(feedback, "Please select a registration."); return; }
-            approvalSvc.approve(sel.getRegistrationId(), admin.getAdminId());
-            sel.setStatus("Approved");
-            table.refresh();
-            StudentUI.setSuccess(feedback, "Registration #" + sel.getRegistrationId() + " approved.");
+            boolean ok = approvalSvc.approve(sel.getRegistrationId());
+            if (ok) {
+                // remove from pending list
+                table.getItems().remove(sel);
+                StudentUI.setSuccess(feedback, "Registration #" + sel.getRegistrationId() + " approved.");
+
+                // Refresh student and organizer views when they navigate. If admin also wants to
+                // view the student's registrations or related event list, they can toggle views.
+                // Additionally, if there's an events table visible, refresh it to reflect any
+                // status changes related to events (not registration statuses).
+                StackPane parent = (StackPane) panel.getParent();
+                if (parent != null) {
+                    TableView<Event> eventsTbl = (TableView<Event>) parent.lookup("#tblAllEvents");
+                    if (eventsTbl != null) eventsTbl.setItems(FXCollections.observableArrayList(new EventService().getAllEvents()));
+                }
+            } else {
+                StudentUI.setError(feedback, "Failed to approve registration. Please try again.");
+            }
         });
 
         rejectBtn.setOnAction(e -> {
             Registration sel = table.getSelectionModel().getSelectedItem();
             if (sel == null) { StudentUI.setError(feedback, "Please select a registration."); return; }
-            approvalSvc.reject(sel.getRegistrationId(), admin.getAdminId(), "Rejected by admin");
-            sel.setStatus("Rejected");
-            table.refresh();
-            StudentUI.setError(feedback, "Registration #" + sel.getRegistrationId() + " rejected.");
+            boolean ok = approvalSvc.reject(sel.getRegistrationId(), "Rejected by admin");
+            if (ok) {
+                table.getItems().remove(sel);
+                StudentUI.setError(feedback, "Registration #" + sel.getRegistrationId() + " rejected.");
+
+                StackPane parent = (StackPane) panel.getParent();
+                if (parent != null) {
+                    TableView<Event> eventsTbl = (TableView<Event>) parent.lookup("#tblAllEvents");
+                    if (eventsTbl != null) eventsTbl.setItems(FXCollections.observableArrayList(new EventService().getAllEvents()));
+                }
+            } else {
+                StudentUI.setError(feedback, "Failed to reject registration. Please try again.");
+            }
         });
 
         HBox btnRow = new HBox(12, approveBtn, rejectBtn);
@@ -129,6 +170,7 @@ public class AdminUI {
         heading.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1A237E;");
 
         TableView<Event> table = new TableView<>();
+        table.setId("tblAllEvents");
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         VBox.setVgrow(table, Priority.ALWAYS);
         StudentUI.styleTable(table);
@@ -140,8 +182,52 @@ public class AdminUI {
         StudentUI.addCol(table, "Organizer ID", "organizerId");
         StudentUI.addCol(table, "Status",       "status");
 
+        // Load all events
         table.setItems(FXCollections.observableArrayList(eventSvc.getAllEvents()));
-        panel.getChildren().addAll(heading, table);
+
+        // Feedback label
+        Label feedback = new Label(); feedback.setWrapText(true);
+
+        // Approve / Reject buttons for selected event (admin action)
+        Button approveEventBtn = new Button("✅  Approve Event");
+        StudentUI.stylePrimaryBtn(approveEventBtn);
+        Button rejectEventBtn = new Button("❌  Reject Event");
+        StudentUI.styleDangerBtn(rejectEventBtn);
+
+        approveEventBtn.setOnAction(e -> {
+            Event sel = table.getSelectionModel().getSelectedItem();
+            if (sel == null) { StudentUI.setError(feedback, "Please select an event."); return; }
+            if (!"PENDING".equalsIgnoreCase(sel.getStatus())) {
+                StudentUI.setError(feedback, "Only pending events can be approved."); return;
+            }
+            boolean ok = eventSvc.updateStatus(sel.getEventId(), "APPROVED");
+            if (ok) {
+                sel.setStatus("APPROVED");
+                table.refresh();
+                StudentUI.setSuccess(feedback, "Event #" + sel.getEventId() + " approved.");
+            } else {
+                StudentUI.setError(feedback, "Failed to approve event. Please try again.");
+            }
+        });
+
+        rejectEventBtn.setOnAction(e -> {
+            Event sel = table.getSelectionModel().getSelectedItem();
+            if (sel == null) { StudentUI.setError(feedback, "Please select an event."); return; }
+            if (!"PENDING".equalsIgnoreCase(sel.getStatus())) {
+                StudentUI.setError(feedback, "Only pending events can be rejected."); return;
+            }
+            boolean ok = eventSvc.updateStatus(sel.getEventId(), "REJECTED");
+            if (ok) {
+                sel.setStatus("REJECTED");
+                table.refresh();
+                StudentUI.setError(feedback, "Event #" + sel.getEventId() + " rejected.");
+            } else {
+                StudentUI.setError(feedback, "Failed to reject event. Please try again.");
+            }
+        });
+
+        HBox btnRow = new HBox(12, approveEventBtn, rejectEventBtn);
+        panel.getChildren().addAll(heading, table, btnRow, feedback);
         return panel;
     }
 }

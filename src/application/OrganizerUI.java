@@ -15,6 +15,8 @@ public class OrganizerUI {
     public static void show(User user) {
         Organizer organizer = (Organizer) user;
 
+        System.out.println("OrganizerUI.show: opening organizer UI for id=" + organizer.getOrganizerId() + ", name=" + organizer.getName());
+
         Stage stage = new Stage();
         stage.setTitle("Organizer Portal — " + organizer.getName());
 
@@ -23,7 +25,7 @@ public class OrganizerUI {
         VBox sidebar = StudentUI.buildSidebar(organizer.getName(), "Organizer");
 
         VBox eventsPanel = buildEventsPanel(organizer, eventSvc);
-        VBox createPanel = buildCreatePanel(organizer, eventSvc);
+        VBox createPanel = buildCreatePanel(organizer, eventSvc, eventsPanel);
         createPanel.setVisible(false);
         createPanel.setManaged(false);
 
@@ -67,6 +69,9 @@ public class OrganizerUI {
         heading.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1A237E;");
 
         TableView<Event> table = new TableView<>();
+        table.setId("tblOrganizerEvents");
+        // allow other components to identify the organizer that owns this table
+        table.setUserData(organizer.getOrganizerId());
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         VBox.setVgrow(table, Priority.ALWAYS);
         StudentUI.styleTable(table);
@@ -96,7 +101,7 @@ public class OrganizerUI {
         return panel;
     }
 
-    private static VBox buildCreatePanel(Organizer organizer, EventService eventSvc) {
+    private static VBox buildCreatePanel(Organizer organizer, EventService eventSvc, VBox eventsPanel) {
         VBox panel = new VBox(12);
         panel.setMaxWidth(460);
 
@@ -136,6 +141,27 @@ public class OrganizerUI {
             if (eventSvc.createEvent(newEvent)) {
                 StudentUI.setSuccess(feedback, "Event \"" + name + "\" created!");
                 nameField.clear(); locationField.clear(); descField.clear();
+                // Refresh the organizer's events table (if visible) so the newly created event appears
+                if (eventsPanel.getParent() instanceof StackPane) {
+                    StackPane sp = (StackPane) eventsPanel.getParent();
+                    @SuppressWarnings("unchecked")
+                    TableView<Event> eventsTbl = (TableView<Event>) sp.lookup("#tblOrganizerEvents");
+                    java.util.List<Event> fresh = eventSvc.getEventsByOrganizer(organizer.getOrganizerId());
+                    System.out.println("OrganizerUI: created event, organizerId=" + organizer.getOrganizerId() + ", reloaded events=" + fresh.size());
+                    if (eventsTbl != null) {
+                        eventsTbl.setItems(FXCollections.observableArrayList(fresh));
+                        eventsTbl.refresh();
+                        System.out.println("OrganizerUI: events table refreshed in UI.");
+                        // Switch to the events panel so organizer sees the new event immediately
+                        if (eventsTbl.getParent() instanceof VBox) {
+                            VBox eventsVBox = (VBox) eventsTbl.getParent();
+                            StudentUI.show(eventsVBox);
+                            StudentUI.hide(panel);
+                        }
+                    } else {
+                        System.out.println("OrganizerUI: events table not found in parent StackPane (null).");
+                    }
+                }
             } else {
                 StudentUI.setError(feedback, "Failed to create event. Try again.");
             }

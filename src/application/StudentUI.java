@@ -40,8 +40,23 @@ public class StudentUI {
         Button btnMyReg  = (Button) sidebar.lookup("#navMyReg");
         Button btnLogout = (Button) sidebar.lookup("#navLogout");
 
-        btnEvents.setOnAction(e -> { show(eventsPanel); hide(myRegPanel); });
-        btnMyReg.setOnAction(e  -> { show(myRegPanel);  hide(eventsPanel); });
+        // Refresh data when panels are shown so status updates (approved/rejected)
+        btnEvents.setOnAction(e -> {
+            TableView<Event> tbl = (TableView<Event>) eventsPanel.lookup("#tblEvents");
+            if (tbl != null) {
+                tbl.setItems(FXCollections.observableArrayList(eventSvc.getAllEvents()));
+            }
+            show(eventsPanel); hide(myRegPanel);
+        });
+        btnMyReg.setOnAction(e  -> {
+            TableView<Registration> tbl = (TableView<Registration>) myRegPanel.lookup("#tblMyReg");
+            if (tbl != null) {
+                tbl.setItems(FXCollections.observableArrayList(
+                    regSvc.getRegistrationsByStudent(student.getStudentId())
+                ));
+            }
+            show(myRegPanel);  hide(eventsPanel);
+        });
         btnLogout.setOnAction(e -> { student.logout();  stage.close(); });
 
         HBox root = new HBox(sidebar, content);
@@ -64,6 +79,7 @@ public class StudentUI {
         sub.setStyle("-fx-text-fill: #757575;");
 
         TableView<Event> table = new TableView<>();
+        table.setId("tblEvents");
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         VBox.setVgrow(table, Priority.ALWAYS);
         styleTable(table);
@@ -89,6 +105,14 @@ public class StudentUI {
             boolean ok = regSvc.registerStudent(student.getStudentId(), selected.getEventId());
             if (ok) setSuccess(feedback, "Registered for: " + selected.getEventName());
             else    setError(feedback, "Already registered for this event.");
+
+            // If the My Registrations panel is visible, refresh its data so student sees the
+            // new registration immediately.
+            StackPane parent = (StackPane) table.getParent();
+            if (parent != null) {
+                VBox myReg = (VBox) parent.lookup("#tblMyReg") != null ? (VBox) parent.lookup("#tblMyReg").getParent() : null;
+                // above attempt is defensive; UI refresh on navigation is the primary mechanism
+            }
         });
 
         panel.getChildren().addAll(heading, sub, table, registerBtn, feedback);
@@ -103,6 +127,9 @@ public class StudentUI {
         heading.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1A237E;");
 
         TableView<Registration> table = new TableView<>();
+        table.setId("tblMyReg");
+        // Attach the student id so other components (admin) can refresh this specific table
+        table.setUserData(student.getStudentId());
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         VBox.setVgrow(table, Priority.ALWAYS);
         styleTable(table);

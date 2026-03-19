@@ -15,24 +15,44 @@ public class ApprovalService {
         this.registrationService = new RegistrationService();
     }
 
-    public boolean approve(int registrationId, int adminId) {
-        return processDecision(registrationId, adminId, "Approved", "Approved by admin");
+    // adminId removed — approvals no longer record which admin approved
+    public boolean approve(int registrationId) {
+        return processDecision(registrationId, "APPROVED", "Approved");
     }
 
-    public boolean reject(int registrationId, int adminId, String remarks) {
-        return processDecision(registrationId, adminId, "Rejected", remarks);
+    public boolean reject(int registrationId, String remarks) {
+        return processDecision(registrationId, "REJECTED", remarks);
     }
 
-    private boolean processDecision(int registrationId, int adminId, String status, String remarks) {
-        String sql = "INSERT INTO approval (registration_id, admin_id, status, remarks) VALUES (?, ?, ?, ?)";
+    private boolean processDecision(int registrationId, String status, String remarks) {
+        // Removed admin_id column from insert
+        String sql = "INSERT INTO approval (registration_id, status, remarks) VALUES (?, ?, ?)";
+        boolean originalAutoCommit = true;
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, registrationId); ps.setInt(2, adminId);
-            ps.setString(3, status);      ps.setString(4, remarks);
-            ps.executeUpdate();
-            registrationService.updateStatus(registrationId, status);
-            return true;
+            originalAutoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+
+            ps.setInt(1, registrationId);
+            ps.setString(2, status);      ps.setString(3, remarks);
+            int inserted = ps.executeUpdate();
+
+            // Update registration status
+            boolean updated = registrationService.updateStatus(registrationId, status);
+
+            if (inserted > 0 && updated) {
+                conn.commit();
+                return true;
+            } else {
+                conn.rollback();
+                return false;
+            }
         } catch (SQLException e) {
-            System.err.println("Approval error: " + e.getMessage()); return false;
+            try { conn.rollback(); } catch (SQLException ignored) {}
+            System.err.println("Approval error: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        } finally {
+            try { conn.setAutoCommit(originalAutoCommit); } catch (SQLException ignored) {}
         }
     }
 }

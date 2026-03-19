@@ -57,15 +57,13 @@ CREATE TABLE IF NOT EXISTS `registration` (
   UNIQUE KEY `ux_student_event` (`student_id`, `event_id`)
 ) ENGINE=InnoDB;
 
--- Approval table (approval, approval_id, registration_id, admin_id, status, created_at)
+-- Approval table (approval, approval_id, registration_id, status, created_at)
 CREATE TABLE IF NOT EXISTS `approval` (
   `approval_id` INT AUTO_INCREMENT PRIMARY KEY,
   `registration_id` INT NOT NULL,
-  `admin_id` INT NOT NULL,
   `status` ENUM('PENDING','APPROVED','REJECTED') NOT NULL DEFAULT 'PENDING',
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (`registration_id`) REFERENCES `registration`(`registration_id`) ON DELETE CASCADE,
-  FOREIGN KEY (`admin_id`) REFERENCES `admin`(`admin_id`) ON DELETE CASCADE
+  FOREIGN KEY (`registration_id`) REFERENCES `registration`(`registration_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- Sample data (optional) -- change as needed

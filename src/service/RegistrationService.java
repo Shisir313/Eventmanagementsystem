@@ -17,9 +17,10 @@ public class RegistrationService {
 
     public boolean registerStudent(int studentId, int eventId) {
         if (isAlreadyRegistered(studentId, eventId)) return false;
+        // Register as PENDING — admin must approve via ApprovalService
         String sql = "INSERT INTO registration (student_id, event_id, registration_date, status) " +
-                     "VALUES (?, ?, ?, 'Approved')"; // Auto-approve registrations
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                     "VALUES (?, ?, ?, 'PENDING')";
+        try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, studentId); ps.setInt(2, eventId);
             ps.setDate(3, java.sql.Date.valueOf(LocalDate.now()));
             int rows = ps.executeUpdate();
@@ -45,7 +46,7 @@ public class RegistrationService {
 
     public List<Registration> getAllPendingRegistrations() {
         List<Registration> list = new ArrayList<>();
-        String sql = "SELECT * FROM registration WHERE status = 'Pending'";
+        String sql = "SELECT * FROM registration WHERE status = 'PENDING'";
         try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
             while (rs.next()) list.add(mapRow(rs));
         } catch (SQLException e) { System.err.println("Get pending error: " + e.getMessage()); e.printStackTrace(); }
@@ -87,6 +88,22 @@ public class RegistrationService {
             if (rs.next()) return rs.getInt(1) > 0;
         } catch (SQLException e) { System.err.println("Duplicate check error: " + e.getMessage()); e.printStackTrace(); }
         return false;
+    }
+
+    /**
+     * Helper: fetch a student's name by id. Returns null if not found or on error.
+     */
+    public String getStudentName(int studentId) {
+        String sql = "SELECT name FROM student WHERE student_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, studentId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getString("name");
+        } catch (SQLException e) {
+            System.err.println("Get student name error: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return null;
     }
 
     private Registration mapRow(ResultSet rs) throws SQLException {

@@ -16,7 +16,7 @@ public class EventService {
 
     public boolean createEvent(Event event) {
         String sql = "INSERT INTO event (event_name, event_date, location, description, organizer_id, status) " +
-                     "VALUES (?, ?, ?, ?, ?, 'Pending')";
+                     "VALUES (?, ?, ?, ?, ?, 'PENDING')";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, event.getEventName());
             ps.setDate(2, java.sql.Date.valueOf(event.getEventDate()));
@@ -70,6 +70,33 @@ public class EventService {
         } catch (SQLException e) {
             System.err.println("Delete event error: " + e.getMessage()); return false;
         }
+    }
+
+    // New: allow admins to change an event's status (e.g., APPROVED / REJECTED)
+    public boolean updateStatus(int eventId, String status) {
+        String sql = "UPDATE event SET status = ? WHERE event_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, status);
+            ps.setInt(2, eventId);
+            int rows = ps.executeUpdate();
+            System.out.println("updateEventStatus: rowsAffected=" + rows);
+            return rows > 0;
+        } catch (SQLException e) {
+            System.err.println("Update event status error: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // Optional: helper to fetch only pending events
+    public List<Event> getAllPendingEvents() {
+        List<Event> list = new ArrayList<>();
+        // Use case-insensitive comparison to tolerate 'Pending'/'PENDING' defaults
+        String sql = "SELECT * FROM event WHERE UPPER(status) = 'PENDING' ORDER BY event_date ASC";
+        try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
+            while (rs.next()) list.add(mapRow(rs));
+        } catch (SQLException e) { System.err.println("Get pending events error: " + e.getMessage()); }
+        return list;
     }
 
     private Event mapRow(ResultSet rs) throws SQLException {

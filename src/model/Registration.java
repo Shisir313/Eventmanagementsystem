@@ -20,7 +20,7 @@ public class Registration implements Serializable {
         this.studentId = studentId;
         this.eventId = eventId;
         this.registrationDate = registrationDate;
-        this.status = "Pending";
+        this.status = "PENDING";
     }
 
     // Optional constructor that accepts status
@@ -29,7 +29,7 @@ public class Registration implements Serializable {
         this.studentId = studentId;
         this.eventId = eventId;
         this.registrationDate = registrationDate;
-        this.status = status != null ? status : "Pending";
+        this.status = status != null ? status : "PENDING";
     }
 
     public int getRegistrationId() {

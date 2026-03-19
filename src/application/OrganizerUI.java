@@ -5,6 +5,7 @@ import javafx.geometry.*;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 import model.*;
 import service.EventService;
@@ -97,8 +98,91 @@ public class OrganizerUI {
             StudentUI.setSuccess(feedback, "Event deleted.");
         });
 
-        panel.getChildren().addAll(heading, table, deleteBtn, feedback);
+        // New: Edit button to open modal for updating selected event
+        Button editBtn = new Button("✏️  Edit Selected Event");
+        StudentUI.stylePrimaryBtn(editBtn);
+        editBtn.setOnAction(e -> {
+            Event sel = table.getSelectionModel().getSelectedItem();
+            if (sel == null) { StudentUI.setError(feedback, "Please select an event to edit."); return; }
+            // open edit dialog
+            boolean updated = showEditDialog(table.getScene().getWindow(), sel, eventSvc);
+            if (updated) {
+                // reload the organizer's events and refresh table
+                java.util.List<Event> fresh = eventSvc.getEventsByOrganizer(organizer.getOrganizerId());
+                table.setItems(FXCollections.observableArrayList(fresh));
+                table.refresh();
+                StudentUI.setSuccess(feedback, "Event updated.");
+            }
+        });
+
+        panel.getChildren().addAll(heading, table, new HBox(8, editBtn, deleteBtn), feedback);
         return panel;
+    }
+
+    private static boolean showEditDialog(javafx.stage.Window owner, Event event, EventService eventSvc) {
+        // Create a modal dialog stage
+        Stage dialog = new Stage();
+        dialog.initOwner(owner);
+        dialog.initModality(Modality.APPLICATION_MODAL);
+        dialog.setTitle("Edit Event — " + event.getEventName());
+
+        VBox root = new VBox(10);
+        root.setPadding(new Insets(12));
+
+        TextField nameField = new TextField(event.getEventName());
+        DatePicker datePicker = new DatePicker(event.getEventDate());
+        TextField locationField = new TextField(event.getLocation());
+        TextArea descField = new TextArea(event.getDescription());
+        descField.setPrefRowCount(4);
+
+        Label feedback = new Label();
+        feedback.setWrapText(true);
+
+        // mutable flag captured by the lambda to indicate whether save succeeded
+        final boolean[] saved = new boolean[]{false};
+
+        Button saveBtn = new Button("Save");
+        StudentUI.stylePrimaryBtn(saveBtn);
+        saveBtn.setOnAction(e -> {
+            String name = nameField.getText().trim();
+            String location = locationField.getText().trim();
+            LocalDate date = datePicker.getValue();
+            if (name.isEmpty() || location.isEmpty() || date == null) {
+                StudentUI.setError(feedback, "Please fill in all required fields."); return;
+            }
+            // update event object and persist
+            event.setEventName(name);
+            event.setLocation(location);
+            event.setEventDate(date);
+            event.setDescription(descField.getText().trim());
+            boolean ok = eventSvc.updateEvent(event);
+            if (ok) {
+                StudentUI.setSuccess(feedback, "Event saved.");
+                saved[0] = true;
+                dialog.close();
+            } else {
+                StudentUI.setError(feedback, "Failed to save event. Try again.");
+            }
+        });
+
+        Button cancelBtn = new Button("Cancel");
+        cancelBtn.setOnAction(e -> dialog.close());
+
+        HBox actions = new HBox(8, saveBtn, cancelBtn);
+
+        root.getChildren().addAll(
+            new Label("Event Name"), nameField,
+            new Label("Event Date"), datePicker,
+            new Label("Location"), locationField,
+            new Label("Description"), descField,
+            actions, feedback
+        );
+
+        Scene scene = new Scene(root, 420, 380);
+        dialog.setScene(scene);
+        dialog.showAndWait();
+
+        return saved[0];
     }
 
     private static VBox buildCreatePanel(Organizer organizer, EventService eventSvc, VBox eventsPanel) {

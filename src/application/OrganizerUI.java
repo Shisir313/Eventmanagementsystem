@@ -150,6 +150,10 @@ public class OrganizerUI {
             if (name.isEmpty() || location.isEmpty() || date == null) {
                 StudentUI.setError(feedback, "Please fill in all required fields."); return;
             }
+            // Prevent past dates at UI level
+            if (date.isBefore(LocalDate.now())) {
+                StudentUI.setError(feedback, "Event date cannot be in the past."); return;
+            }
             // update event object and persist
             event.setEventName(name);
             event.setLocation(location);
@@ -217,6 +221,11 @@ public class OrganizerUI {
 
             if (name.isEmpty() || location.isEmpty() || date == null) {
                 StudentUI.setError(feedback, "Please fill in all required fields."); return;
+            }
+
+            // Prevent creating events with past dates at UI level
+            if (date.isBefore(LocalDate.now())) {
+                StudentUI.setError(feedback, "Event date cannot be in the past."); return;
             }
 
             Event newEvent = new Event(0, name, date, location,

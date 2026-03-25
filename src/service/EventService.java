@@ -5,6 +5,7 @@ import model.Event;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalDate;
 
 public class EventService {
 
@@ -15,6 +16,16 @@ public class EventService {
     }
 
     public boolean createEvent(Event event) {
+        // Validate date server-side: must be non-null and not in the past
+        if (event == null || event.getEventDate() == null) {
+            System.err.println("Create event failed: event or event date is null");
+            return false;
+        }
+        if (event.getEventDate().isBefore(LocalDate.now())) {
+            System.err.println("Create event failed: event date is in the past: " + event.getEventDate());
+            return false;
+        }
+
         String sql = "INSERT INTO event (event_name, event_date, location, description, organizer_id, status) " +
                      "VALUES (?, ?, ?, ?, ?, 'PENDING')";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -50,6 +61,16 @@ public class EventService {
     }
 
     public boolean updateEvent(Event event) {
+        // Validate date server-side: must be non-null and not in the past
+        if (event == null || event.getEventDate() == null) {
+            System.err.println("Update event failed: event or event date is null");
+            return false;
+        }
+        if (event.getEventDate().isBefore(LocalDate.now())) {
+            System.err.println("Update event failed: event date is in the past: " + event.getEventDate());
+            return false;
+        }
+
         String sql = "UPDATE event SET event_name=?, event_date=?, location=?, description=? WHERE event_id=?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, event.getEventName());

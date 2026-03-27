@@ -1,1 +1,123 @@
-/* JavaFX CSS - Leave this comment until you have at least create one rule which uses -fx-Property */
+/* Dark green + gold JavaFX theme
+   Palette:
+     - Dark green (deep): #0B3D2E
+     - Dark green (accent): #083C29
+     - Gold (accent): #D4AF37
+     - Soft cream text: #F5F3E7
+     - Field background: #0F4A3B
+*/
+
+.root {
+    /* Overall background */
+    -fx-background-color: linear-gradient(from 0% 0% to 0% 100%, #083C29, #05291E);
+    -fx-font-family: "Segoe UI", "Helvetica Neue", Arial;
+    -fx-font-size: 12pt;
+    -fx-text-fill: #F5F3E7; /* default text color */
+}
+
+.label, .text, .text-flow, .title {
+    -fx-text-fill: #F5F3E7;
+}
+
+.button {
+    -fx-background-color: linear-gradient(#D4AF37, #B8860B); /* gold */
+    -fx-text-fill: #072E22; /* dark text on gold */
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-padding: 6 12 6 12;
+    -fx-font-weight: 600;
+}
+
+.button:hover {
+    -fx-background-color: linear-gradient(#E0C068, #C99A20);
+}
+
+.button:pressed {
+    -fx-background-color: linear-gradient(#C99A20, #A67C00);
+}
+
+.text-field, .password-field, .text-area, .combo-box, .choice-box {
+    -fx-control-inner-background: #0F4A3B; /* field background */
+    -fx-background-color: #0F4A3B, linear-gradient(#083C29, #05291E);
+    -fx-text-fill: #F5F3E7;
+    -fx-prompt-text-fill: #BFD6C6; /* lighter hint */
+    -fx-border-color: transparent;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+}
+
+.text-field:focused, .password-field:focused, .text-area:focused {
+    -fx-border-color: #D4AF37; /* gold focus */
+    -fx-border-width: 2;
+}
+
+.menu-bar {
+    -fx-background-color: linear-gradient(#062E24, #083C29);
+}
+
+.menu, .menu-button {
+    -fx-text-fill: #F5F3E7;
+}
+
+.tool-bar {
+    -fx-background-color: transparent;
+}
+
+.table-view {
+    -fx-background-color: transparent;
+    -fx-table-cell-border-color: rgba(255,255,255,0.06);
+    -fx-table-header-border-color: rgba(255,255,255,0.08);
+}
+
+.table-view .column-header-background {
+    -fx-background-color: linear-gradient(#072E22, #083C29);
+}
+
+.table-view .column-header, .table-view .column-header .label {
+    -fx-text-fill: #F5F3E7;
+    -fx-font-weight: 600;
+}
+
+.table-row-cell:odd {
+    -fx-background-color: rgba(255,255,255,0.01);
+}
+
+.table-row-cell:even {
+    -fx-background-color: transparent;
+}
+
+.list-view, .scroll-pane {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: #0F4A3B;
+    -fx-background-insets: 0;
+    -fx-background-radius: 4;
+}
+
+.dialog-pane {
+    -fx-background-color: linear-gradient(#083C29, #05291E);
+    -fx-border-color: rgba(212,175,55,0.12);
+}
+
+.dialog-pane .content.label, .alert {
+    -fx-text-fill: #F5F3E7;
+}
+
+.hyperlink, .link {
+    -fx-text-fill: #D4AF37;
+}
+
+.header, .footer {
+    -fx-background-color: linear-gradient(#062E24, #083C29);
+    -fx-text-fill: #F5F3E7;
+}
+
+/* Small utility classes */
+.gold-outline {
+    -fx-border-color: #D4AF37;
+    -fx-border-width: 1;
+}
+
+/* Keep this comment until you have at least one rule which uses -fx-Property (JavaFX CSS requirement) */

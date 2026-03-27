@@ -19,19 +19,20 @@ public class AuthUI {
         sidebar.setAlignment(Pos.CENTER);
         sidebar.setPrefWidth(340);
         sidebar.setMinWidth(340);
-        sidebar.setStyle("-fx-background-color: #1A237E; -fx-padding: 40px;");
+        // dark green sidebar
+        sidebar.setStyle("-fx-background-color: #083C29; -fx-padding: 40px;");
 
         Label icon = new Label("🎓");
-        icon.setStyle("-fx-font-size: 52px;");
+        icon.setStyle("-fx-font-size: 52px; -fx-text-fill: #D4AF37;");
 
         Label appName = new Label("College Event\nManagement System");
-        appName.setStyle("-fx-text-fill: white; -fx-font-size: 24px; " +
+        appName.setStyle("-fx-text-fill: #F5F3E7; -fx-font-size: 24px; " +
                          "-fx-font-weight: bold; -fx-text-alignment: center;");
         appName.setTextAlignment(TextAlignment.CENTER);
         appName.setWrapText(true);
 
         Label tagline = new Label("Stay connected.\nNever miss a campus event.");
-        tagline.setStyle("-fx-text-fill: #C5CAE9; -fx-font-size: 13px; " +
+        tagline.setStyle("-fx-text-fill: #BFD6C6; -fx-font-size: 13px; " +
                          "-fx-text-alignment: center;");
         tagline.setTextAlignment(TextAlignment.CENTER);
         tagline.setWrapText(true);
@@ -45,7 +46,7 @@ public class AuthUI {
                 "🔔  Get instant notifications",
                 "📊  Manage & track attendance"}) {
             Label l = new Label(f);
-            l.setStyle("-fx-text-fill: #C5CAE9; -fx-font-size: 13px;");
+            l.setStyle("-fx-text-fill: #BFD6C6; -fx-font-size: 13px;");
             features.getChildren().add(l);
         }
         sidebar.getChildren().addAll(icon, appName, tagline, features);
@@ -53,20 +54,22 @@ public class AuthUI {
         // ── RIGHT: Login form ──────────────────────────────────
         VBox formArea = new VBox();
         formArea.setAlignment(Pos.CENTER);
-        formArea.setStyle("-fx-background-color: #F5F6FA;");
+        // transparent so root dark background or cream content shows through; padding kept
+        formArea.setStyle("-fx-background-color: transparent; -fx-padding: 40px;");
         HBox.setHgrow(formArea, Priority.ALWAYS);
 
         VBox card = new VBox(14);
         card.setMaxWidth(370);
-        card.setStyle("-fx-background-color: white; -fx-padding: 32px; " +
+        // darker card to fit theme
+        card.setStyle("-fx-background-color: linear-gradient(#083C29, #05291E); -fx-padding: 32px; " +
                       "-fx-background-radius: 12px; " +
-                      "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.10), 16, 0, 0, 4);");
+                      "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.20), 16, 0, 0, 6);");
 
         Label title = new Label("Welcome Back");
-        title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #1A237E;");
+        title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #D4AF37;");
 
         Label sub = new Label("Sign in to your account to continue");
-        sub.setStyle("-fx-text-fill: #757575; -fx-font-size: 13px;");
+        sub.setStyle("-fx-text-fill: #BFD6C6; -fx-font-size: 13px;");
 
         // Role
         Label roleLabel = fieldLabel("Sign in as");
@@ -104,7 +107,7 @@ public class AuthUI {
         stylePrimaryBtn(loginBtn);
 
         Label hint = new Label("New user? Ask your administrator to create an account.");
-        hint.setStyle("-fx-font-size: 11px; -fx-text-fill: #9E9E9E;");
+        hint.setStyle("-fx-font-size: 11px; -fx-text-fill: #BFD6C6;");
         hint.setWrapText(true);
 
         card.getChildren().addAll(
@@ -121,8 +124,8 @@ public class AuthUI {
         registerBtn.setMaxWidth(Double.MAX_VALUE);
         registerBtn.setPrefHeight(38);
         registerBtn.setStyle(
-            "-fx-background-color: transparent; -fx-text-fill: #1A237E; " +
-            "-fx-font-size: 13px; -fx-border-color: #1A237E; " +
+            "-fx-background-color: transparent; -fx-text-fill: #D4AF37; " +
+            "-fx-font-size: 13px; -fx-border-color: #D4AF37; " +
             "-fx-border-width: 1.5px; -fx-border-radius: 8px; -fx-cursor: hand;");
 
         registerBtn.setOnAction(e -> showRegisterDialog(roleCombo.getValue()));
@@ -167,6 +170,8 @@ public class AuthUI {
         root.setMinSize(900, 580);
 
         Scene scene = new Scene(root, 900, 580);
+        // Load the project's application.css (placed in the same package)
+        scene.getStylesheets().add(AuthUI.class.getResource("application.css").toExternalForm());
         stage.setScene(scene);
         stage.setTitle("College Event Management System");
         stage.setResizable(true);
@@ -182,33 +187,34 @@ public class AuthUI {
 
     private static Label fieldLabel(String text) {
         Label l = new Label(text);
-        l.setStyle("-fx-font-weight: bold; -fx-text-fill: #424242; -fx-font-size: 13px;");
+        l.setStyle("-fx-font-weight: bold; -fx-text-fill: #BFD6C6; -fx-font-size: 13px;");
         return l;
     }
 
     private static void styleField(Control field) {
-        field.setStyle("-fx-background-color: #FAFAFA; -fx-border-color: #BDBDBD; " +
-                       "-fx-border-width: 1.5px; -fx-border-radius: 8px; " +
-                       "-fx-background-radius: 8px; -fx-padding: 10px 14px; " +
+        // dark field background with cream text to match CSS
+        field.setStyle("-fx-background-color: #0F4A3B; -fx-border-color: transparent; " +
+                       "-fx-text-fill: #F5F3E7; -fx-prompt-text-fill: #BFD6C6; " +
+                       "-fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 10px 14px; " +
                        "-fx-font-size: 14px; -fx-pref-height: 42px;");
     }
 
     private static void styleCombo(ComboBox<?> combo) {
-        combo.setStyle("-fx-background-color: #FAFAFA; -fx-border-color: #BDBDBD; " +
-                       "-fx-border-width: 1.5px; -fx-border-radius: 8px; " +
-                       "-fx-background-radius: 8px; -fx-pref-height: 42px;");
+        combo.setStyle("-fx-background-color: #0F4A3B; -fx-border-color: transparent; " +
+                       "-fx-text-fill: #F5F3E7; -fx-prompt-text-fill: #BFD6C6; " +
+                       "-fx-border-radius: 8px; -fx-background-radius: 8px; -fx-pref-height: 42px;");
     }
 
     private static void stylePrimaryBtn(Button btn) {
-        btn.setStyle("-fx-background-color: #1A237E; -fx-text-fill: white; " +
+        btn.setStyle("-fx-background-color: linear-gradient(#D4AF37, #B8860B); -fx-text-fill: #072E22; " +
                      "-fx-font-size: 14px; -fx-font-weight: bold; " +
                      "-fx-background-radius: 8px; -fx-cursor: hand;");
         btn.setOnMouseEntered(e -> btn.setStyle(
-            "-fx-background-color: #3949AB; -fx-text-fill: white; " +
+            "-fx-background-color: linear-gradient(#E0C068, #C99A20); -fx-text-fill: #072E22; " +
             "-fx-font-size: 14px; -fx-font-weight: bold; " +
             "-fx-background-radius: 8px; -fx-cursor: hand;"));
         btn.setOnMouseExited(e -> btn.setStyle(
-            "-fx-background-color: #1A237E; -fx-text-fill: white; " +
+            "-fx-background-color: linear-gradient(#D4AF37, #B8860B); -fx-text-fill: #072E22; " +
             "-fx-font-size: 14px; -fx-font-weight: bold; " +
             "-fx-background-radius: 8px; -fx-cursor: hand;"));
     }

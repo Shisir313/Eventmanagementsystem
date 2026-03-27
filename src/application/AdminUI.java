@@ -31,20 +31,20 @@ public class AdminUI {
         eventsPanel.setManaged(false);
 
         StackPane content = new StackPane(approvalsPanel, eventsPanel);
-        content.setStyle("-fx-background-color: #F5F6FA; -fx-padding: 24px;");
+        content.setStyle("-fx-background-color: #F5F3E7; -fx-padding: 24px;");
         HBox.setHgrow(content, Priority.ALWAYS);
 
         // ── Sidebar ────────────────────────────────────────────
         VBox sidebar = new VBox(0);
-        sidebar.setStyle("-fx-background-color: #1A237E; -fx-pref-width: 220px;");
+        sidebar.setStyle("-fx-background-color: #083C29; -fx-pref-width: 220px;");
 
         VBox header = new VBox(4);
-        header.setStyle("-fx-background-color: #12175E; -fx-padding: 24px 16px;");
+        header.setStyle("-fx-background-color: #05291E; -fx-padding: 24px 16px;");
         header.setAlignment(Pos.CENTER);
         Label nameL = new Label(admin.getName());
-        nameL.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
+        nameL.setStyle("-fx-text-fill: #F5F3E7; -fx-font-size: 14px; -fx-font-weight: bold;");
         Label roleL = new Label("Admin");
-        roleL.setStyle("-fx-text-fill: #9FA8DA; -fx-font-size: 12px;");
+        roleL.setStyle("-fx-text-fill: #BFD6C6; -fx-font-size: 12px;");
         header.getChildren().addAll(nameL, roleL);
 
         Button btnApprovals = StudentUI.navBtn("📋  Registrations", "navApprovals");
@@ -68,6 +68,7 @@ public class AdminUI {
 
         HBox root = new HBox(sidebar, content);
         Scene scene = new Scene(root, 1100, 650);
+        scene.getStylesheets().add(AdminUI.class.getResource("application.css").toExternalForm());
         stage.setScene(scene);
         stage.setMinWidth(950);
         stage.show();
@@ -79,7 +80,7 @@ public class AdminUI {
         VBox panel = new VBox(14);
 
         Label heading = new Label("Pending Registrations");
-        heading.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1A237E;");
+        heading.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #0B3D2E;");
         Label sub = new Label("Approve or reject student event registrations.");
         sub.setStyle("-fx-text-fill: #757575;");
 
@@ -167,7 +168,7 @@ public class AdminUI {
         VBox panel = new VBox(14);
 
         Label heading = new Label("All Events");
-        heading.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1A237E;");
+        heading.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #0B3D2E;");
 
         TableView<Event> table = new TableView<>();
         table.setId("tblAllEvents");

@@ -32,7 +32,8 @@ public class StudentUI {
         myRegPanel.setManaged(false);
 
         StackPane content = new StackPane(eventsPanel, myRegPanel);
-        content.setStyle("-fx-background-color: #F5F6FA; -fx-padding: 24px;");
+        // changed light background to soft cream to match dark-green/gold theme
+        content.setStyle("-fx-background-color: #F5F3E7; -fx-padding: 24px;");
         HBox.setHgrow(content, Priority.ALWAYS);
 
         // ── Nav buttons ────────────────────────────────────────
@@ -61,6 +62,7 @@ public class StudentUI {
 
         HBox root = new HBox(sidebar, content);
         Scene scene = new Scene(root, 1000, 620);
+        scene.getStylesheets().add(StudentUI.class.getResource("application.css").toExternalForm());
         stage.setScene(scene);
         stage.setMinWidth(900);
         stage.show();
@@ -73,7 +75,8 @@ public class StudentUI {
         VBox panel = new VBox(14);
 
         Label heading = new Label("Upcoming Events");
-        heading.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1A237E;");
+        // use deep green for headings
+        heading.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #0B3D2E;");
 
         Label sub = new Label("Select an event and click Register.");
         sub.setStyle("-fx-text-fill: #757575;");
@@ -124,7 +127,7 @@ public class StudentUI {
         VBox panel = new VBox(14);
 
         Label heading = new Label("My Registrations");
-        heading.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1A237E;");
+        heading.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #0B3D2E;");
 
         TableView<Registration> table = new TableView<>();
         table.setId("tblMyReg");
@@ -161,16 +164,18 @@ public class StudentUI {
     // ── Sidebar ────────────────────────────────────────────────
     static VBox buildSidebar(String name, String role) {
         VBox sidebar = new VBox(0);
-        sidebar.setStyle("-fx-background-color: #1A237E; -fx-pref-width: 220px; -fx-min-width: 200px;");
+        // use dark green for sidebar background
+        sidebar.setStyle("-fx-background-color: #083C29; -fx-pref-width: 220px; -fx-min-width: 200px;");
 
         VBox header = new VBox(4);
-        header.setStyle("-fx-background-color: #12175E; -fx-padding: 24px 16px;");
+        // slightly darker header shade
+        header.setStyle("-fx-background-color: #05291E; -fx-padding: 24px 16px;");
         header.setAlignment(Pos.CENTER);
         Label nameL = new Label(name);
-        nameL.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
+        nameL.setStyle("-fx-text-fill: #F5F3E7; -fx-font-size: 14px; -fx-font-weight: bold;");
         nameL.setWrapText(true);
         Label roleL = new Label(role);
-        roleL.setStyle("-fx-text-fill: #9FA8DA; -fx-font-size: 12px;");
+        roleL.setStyle("-fx-text-fill: #BFD6C6; -fx-font-size: 12px;");
         header.getChildren().addAll(nameL, roleL);
 
         Button btnEvents = navBtn("📅  Browse Events", "navEvents");
@@ -188,13 +193,14 @@ public class StudentUI {
         Button b = new Button(text);
         b.setId(id);
         b.setMaxWidth(Double.MAX_VALUE);
-        b.setStyle("-fx-background-color: transparent; -fx-text-fill: #C5CAE9; " +
+        // use cream as label color, hover uses dark-green accent
+        b.setStyle("-fx-background-color: transparent; -fx-text-fill: #BFD6C6; " +
                    "-fx-font-size: 13px; -fx-padding: 12px 20px; -fx-alignment: center-left;");
         b.setOnMouseEntered(e -> b.setStyle(
-            "-fx-background-color: #283593; -fx-text-fill: white; " +
+            "-fx-background-color: #0F4A3B; -fx-text-fill: #F5F3E7; " +
             "-fx-font-size: 13px; -fx-padding: 12px 20px; -fx-alignment: center-left;"));
         b.setOnMouseExited(e -> b.setStyle(
-            "-fx-background-color: transparent; -fx-text-fill: #C5CAE9; " +
+            "-fx-background-color: transparent; -fx-text-fill: #BFD6C6; " +
             "-fx-font-size: 13px; -fx-padding: 12px 20px; -fx-alignment: center-left;"));
         return b;
     }
@@ -206,12 +212,14 @@ public class StudentUI {
     }
 
     static void styleTable(TableView<?> table) {
-        table.setStyle("-fx-background-color: white; -fx-border-color: #E0E0E0; " +
+        // use cream background and subtle green/gold border
+        table.setStyle("-fx-background-color: #F5F3E7; -fx-border-color: rgba(212,175,55,0.14); " +
                        "-fx-border-radius: 8px;");
     }
 
     static void stylePrimaryBtn(Button b) {
-        b.setStyle("-fx-background-color: #1A237E; -fx-text-fill: white; " +
+        // change primary buttons to gold gradient with dark text to match application.css
+        b.setStyle("-fx-background-color: linear-gradient(#D4AF37, #B8860B); -fx-text-fill: #072E22; " +
                    "-fx-font-weight: bold; -fx-background-radius: 8px; " +
                    "-fx-padding: 10px 20px; -fx-cursor: hand;");
     }
@@ -224,6 +232,7 @@ public class StudentUI {
 
     static void setSuccess(Label l, String msg) {
         l.setText("✅  " + msg);
+        // keep green success color
         l.setStyle("-fx-text-fill: #2E7D32; -fx-font-size: 13px;");
     }
 

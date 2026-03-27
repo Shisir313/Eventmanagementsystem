@@ -31,7 +31,8 @@ public class OrganizerUI {
         createPanel.setManaged(false);
 
         StackPane content = new StackPane(eventsPanel, createPanel);
-        content.setStyle("-fx-background-color: #F5F6FA; -fx-padding: 24px;");
+        // use cream background consistent with StudentUI
+        content.setStyle("-fx-background-color: #F5F3E7; -fx-padding: 24px;");
         HBox.setHgrow(content, Priority.ALWAYS);
 
         Button btnMyEvents = StudentUI.navBtn("📅  My Events",     "navMyEvents");
@@ -43,12 +44,12 @@ public class OrganizerUI {
         // Replace sidebar buttons
         sidebar.getChildren().clear();
         VBox header = new VBox(4);
-        header.setStyle("-fx-background-color: #12175E; -fx-padding: 24px 16px;");
+        header.setStyle("-fx-background-color: #05291E; -fx-padding: 24px 16px;");
         header.setAlignment(Pos.CENTER);
         Label nameL = new Label(organizer.getName());
-        nameL.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
+        nameL.setStyle("-fx-text-fill: #F5F3E7; -fx-font-size: 14px; -fx-font-weight: bold;");
         Label roleL = new Label("Organizer");
-        roleL.setStyle("-fx-text-fill: #9FA8DA; -fx-font-size: 12px;");
+        roleL.setStyle("-fx-text-fill: #BFD6C6; -fx-font-size: 12px;");
         header.getChildren().addAll(nameL, roleL);
         sidebar.getChildren().addAll(header, btnMyEvents, btnCreate, spacer, btnLogout);
 
@@ -58,6 +59,7 @@ public class OrganizerUI {
 
         HBox root = new HBox(sidebar, content);
         Scene scene = new Scene(root, 1000, 620);
+        scene.getStylesheets().add(OrganizerUI.class.getResource("application.css").toExternalForm());
         stage.setScene(scene);
         stage.setMinWidth(900);
         stage.show();
@@ -67,7 +69,7 @@ public class OrganizerUI {
         VBox panel = new VBox(14);
 
         Label heading = new Label("My Events");
-        heading.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1A237E;");
+        heading.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #0B3D2E;");
 
         TableView<Event> table = new TableView<>();
         table.setId("tblOrganizerEvents");
@@ -194,7 +196,7 @@ public class OrganizerUI {
         panel.setMaxWidth(460);
 
         Label heading = new Label("Create New Event");
-        heading.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1A237E;");
+        heading.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #0B3D2E;");
 
         TextField nameField = new TextField();
         nameField.setPromptText("Event name");
